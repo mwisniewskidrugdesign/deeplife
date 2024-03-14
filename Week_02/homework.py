@@ -240,7 +240,7 @@ for a,conv1_out_channels in enumerate(conv1_out_channels_s):
     for b, filter_size in enumerate(filter_sizes):
 
         for c, padding in enumerate(paddings):
-
+            print('')
             for d, pooling_function in enumerate(pooling_functions):
                 for e, dropout_rate in enumerate(dropout_rates):
                    model = CustomModel(conv1_out_channels,filter_size,padding,pooling_function,dropout_rate)
