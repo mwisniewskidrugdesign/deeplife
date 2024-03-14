@@ -9,6 +9,10 @@ from sklearn.model_selection import StratifiedShuffleSplit
 import numpy as np
 import math
 
+%ls
+%cd /content/drive/MyDrive/INSEGNAMENTI/4EU+/
+%ls
+
 #  Set fixed random number seed
 torch.manual_seed(42)
 if torch.cuda.is_available():
@@ -17,6 +21,10 @@ else:
   dev = "cpu"
 print(dev)
 device = torch.device(dev)
+
+from google.colab import drive
+drive.mount('/content/drive', force_remount=True)
+
 
 class CustomImageDataset(Dataset):
     def __init__(self, images_list,c1s,c2s,transform=None):
@@ -112,6 +120,7 @@ class CustomModel(nn.Module):
         x = self.dropout2(x)
         x = self.fc2(x)
         output = F.log_softmax(x, dim=1)
+        a=1
         return output
 def evaluate(model, test_loader, error):
     """
@@ -127,17 +136,19 @@ def evaluate(model, test_loader, error):
     # Iterating through the test data
     for test_datas, test_targets in test_loader:
         # Moving data to the GPU (if available)
-        #  test_datas, test_targets = test_imgs.cuda(), test_targets.cuda()
+        test_datas, test_targets = test_datas.cuda(), test_targets.cuda()
         # Computing the model's output
         output = model(test_datas)
         # Calculating the loss value
         loss = error(output, test_targets)
         cur_loss+=loss.item()
         # Selecting the predicted class based on the model's output
+        real_result = torch.max(test_targets,1)[1]
         predicted = torch.max(output,1)[1]
+        a=1
         # Calculating the number of correct predictions
-        correct += (predicted == test_targets).sum()
-
+        correct += (predicted == torch.max(test_targets,1)[1]).sum()
+        a=1
     # Computing the average loss and accuracy
     avg_loss = cur_loss / len(test_loader.dataset)
     accuracy = correct / len(test_loader.dataset)
@@ -163,6 +174,7 @@ def fit(model, train_loader, error, val_loader, epochs):
     for epoch in range(epochs):
 
         train_datas, train_targets = next(iter(train_loader))
+        train_datas, train_targets = train_datas.cuda(), train_targets.cuda()
         optimizer.zero_grad()
         output = model(train_datas)
         loss = error(output, train_targets)
@@ -174,7 +186,7 @@ def fit(model, train_loader, error, val_loader, epochs):
         valid_loss, _ = evaluate(model,val_loader, error)
         valid_losses.append(valid_loss)
 
-        #print(f'Epoch : {epoch},  train loss:{train_losses[-1]}, valid loss:{valid_losses[-1]}')
+        print(f'Epoch : {epoch},  train loss:{train_losses[-1]}, valid loss:{valid_losses[-1]}')
 
     return train_losses, valid_losses
 
@@ -218,9 +230,9 @@ train_dataset, val_dataset = random_split(train_dataset,[train_size,val_size])
 # Batches were omitted due to the small number of records, and
 # computational resources were not a significant issue in this case.
 
-train_loader = DataLoader(train_dataset)
-test_loader = DataLoader(test_dataset)
-val_loader = DataLoader(val_dataset)
+train_loader = DataLoader(train_dataset,batch_size=len(train_dataset))
+test_loader = DataLoader(test_dataset,batch_size=len(test_dataset))
+val_loader = DataLoader(val_dataset,batch_size=len(val_dataset))
 
 #  example_img, example_label = next(iter(train_loader))
 #  print(f"Batch inputs shape: {example_batch_img.shape}, Batch labels shape: {example_batch_label.shape}")
@@ -229,7 +241,7 @@ val_loader = DataLoader(val_dataset)
 #  Specify parameters
 epochs = 15
 error = nn.CrossEntropyLoss()
-conv1_out_channels_s = [16,32,64]
+conv1_out_channels_s = [64,32,16]
 filter_sizes = [3,5]
 paddings = [0,1]
 pooling_functions = [nn.MaxPool2d, nn.AvgPool2d]
@@ -244,14 +256,13 @@ for a,conv1_out_channels in enumerate(conv1_out_channels_s):
             for d, pooling_function in enumerate(pooling_functions):
                 for e, dropout_rate in enumerate(dropout_rates):
                    model = CustomModel(conv1_out_channels,filter_size,padding,pooling_function,dropout_rate)
-                   print(model)
+                   model.cuda()
                    train_losses, valid_losses = fit(model,train_loader, error, val_loader, epochs)
                    print(f'Specification:\nNumber of channels of first Conv2D layer: {conv1_out_channels},\nFilter Size: {filter_size},\nPadding: {padding},\nPooling Function: {pooling_function},\nDropout Rate: {dropout_rate}.')
                    loss, acc = evaluate(model, train_loader, error)
                    print(f"Train Accuracy:{acc}, Train loss:{loss}")
                    loss, acc = evaluate(model, test_loader, error)
                    print(f"Test Accuracy:{acc}, Test loss:{loss}")
-
                    loss, acc = evaluate(model, val_loader, error)
                    print(f"Validation Accuracy:{acc}, Validation loss:{loss}")
                    print('\n\n\n')
