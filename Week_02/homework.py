@@ -245,7 +245,6 @@ for a,conv1_out_channels in enumerate(conv1_out_channels_s):
                 for e, dropout_rate in enumerate(dropout_rates):
                    model = CustomModel(conv1_out_channels,filter_size,padding,pooling_function,dropout_rate)
                    print(model)
-                   a=1
                    train_losses, valid_losses = fit(model,train_loader, error, val_loader, epochs)
                    print(f'Specification:\nNumber of channels of first Conv2D layer: {conv1_out_channels},\nFilter Size: {filter_size},\nPadding: {padding},\nPooling Function: {pooling_function},\nDropout Rate: {dropout_rate}.')
                    loss, acc = evaluate(model, train_loader, error)
